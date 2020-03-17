@@ -22,7 +22,7 @@ def connect_or_disconnect(sender, receiver, client_name):
 def change_color(sender, receiver):
 	if receiver != GLOBAL:
 		for but, addr in button_dict.items():
-			if sender == addr:
+			if sender == addr and application.addr_to_send != addr:
 				change_dialog_button_color(but, RED_COLOR)	
 
 	elif receiver == GLOBAL and application.addr_to_send != GLOBAL:
