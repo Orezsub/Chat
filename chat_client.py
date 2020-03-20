@@ -34,7 +34,6 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.recipient_address = self.GLOBAL
 
 		self.Vertical_layout = self.ui.verticalLayout
-		self.add_dialog_button_if_no_such(self.GLOBAL, self.GLOBAL)
 		
 		Widget = Qt.QWidget()
 		Widget.setLayout(self.Vertical_layout)
@@ -47,7 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		for but, addr in self.button_dict.items():
 			if sender == but:
 				self.recipient_address = addr
-				
+
 				self.change_dialog_button_color(but, self.BASE_COLOR)						
 				self.display_all_messages_from_sender(addr)
 				break
@@ -96,6 +95,8 @@ class MainWindow(QtWidgets.QMainWindow):
 		for but, addr in self.button_dict.items():
 			if address == addr:	
 				but.setParent(None)
+				del_but = but
+		self.button_dict.pop(del_but)				
 
 
 	def if_any_connect_or_disconnect(self, mtype, sender, client_name):
@@ -139,9 +140,11 @@ class MainWindow(QtWidgets.QMainWindow):
 			for i in reversed(range(len(self.message_list))):
 				if self.message_list[i][1] == self.GLOBAL:
 					del self.message_list[i] 
-
-			for i in range(1,len(data),5):
-				self.message_list.append([data[i+1],data[i+2],f'{data[i+3]} :: {data[i+4]}'])
+			try:
+				for i in range(1,len(data),5):
+					self.message_list.append([data[i+1],data[i+2],f'{data[i+3]} :: {data[i+4]}'])
+			except:
+				pass			
 
 			for but, addr in self.button_dict.items():
 				if addr == self.GLOBAL:
@@ -168,9 +171,10 @@ class MainWindow(QtWidgets.QMainWindow):
 			client_name = data[3]
 			message = data[3]+'†'.join(data[4:])
 
+
+			self.add_dialog_button_if_no_such(sender, client_name)
 			self.if_any_connect_or_disconnect(mtype, sender, client_name)
 			self.append_new_message_into_chat(sender, recipient, message)
-			self.add_dialog_button_if_no_such(sender, client_name)
 
 			self.message_list.append([sender, recipient, message])
 			
@@ -196,19 +200,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 	def log_in(self):
-		self.ui.Btn_Log_In.setDisabled(True)
-		self.ui.Btn_Log_Out.setDisabled(False)
-		self.ui.Btn_Send_Message.setDisabled(False)
-		self.ui.Btn_History_Request.setDisabled(False)
+		try:
+			host = self.ui.Edit_IP.text()
+			port = int(self.ui.Edit_Port.text())
 
-		host = self.ui.Edit_IP.text()
-		port = int(self.ui.Edit_Port.text())
+			self.TCP_socket.set_host_and_port(host, port)
+			self.TCP_socket.set_client_name(self.ui.Edit_Name.text())
+			self.TCP_socket.connect()
 
-		self.TCP_socket.set_host_and_port(host, port)
-		self.TCP_socket.set_client_name(self.ui.Edit_Name.text())
+			self.add_dialog_button_if_no_such(self.GLOBAL, self.GLOBAL)
 
-		self.TCP_socket.connect()
-
+			self.ui.Btn_Log_In.setDisabled(True)
+			self.ui.Btn_Log_Out.setDisabled(False)
+			self.ui.Btn_Send_Message.setDisabled(False)
+			self.ui.Btn_History_Request.setDisabled(False)
+		except:
+			pass
+		
 
 	def prepare_and_send_message(self):	
 		message = self.ui.TEdit_Input_Message.toPlainText()
@@ -238,7 +246,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 		self.close_connection()
 		self.close_all_dialogs()
-		for i in range(1, self.ui.ComboBox_Of_Clients.count()):
+		for i in reversed(range(1, self.ui.ComboBox_Of_Clients.count())):
 			self.ui.ComboBox_Of_Clients.removeItem(i)
 			del self.clients[i]
 		self.message_list.clear()
@@ -249,13 +257,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 	def close_all_dialogs(self):
 		for dialog, addr in self.button_dict.items():
-			if addr != self.GLOBAL:
-				dialog.setParent(None)
-			else:
-				save_dialog = dialog
-				save_addr = addr
+			dialog.setParent(None)	
 		self.button_dict.clear()
-		self.button_dict[save_dialog] = save_addr
 
 
 	def history_request(self):
