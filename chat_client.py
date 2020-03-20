@@ -1,5 +1,3 @@
-#									D:\Python\KSIS\Laba2\Chat\chat_client.py					
-import sys  # sys нужен для передачи argv в QApplication
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal, QObject
 from client_design import Ui_MainWindow  
@@ -20,7 +18,13 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.GLOBAL = 'Global'
 		self.CONNECT = 'connect'
 		self.DISCONNECT = 'disconnect'
+		self.MESSAGE = 'message'
 		self.ARROW = '-->'
+		self.HISTORY = 'history'
+		self.HISTORY_START = 'history_start'
+		self.HISTORY_END = 'history_end'
+		self.HISTORY_REQUEST = 'history_request'
+		self.ACTIVE_CLIENTS = 'active_clients'
 
 		self.BASE_COLOR = '#F0F0F0'
 		self.RED_COLOR = '#DB4747'
@@ -59,11 +63,13 @@ class MainWindow(QtWidgets.QMainWindow):
 	def find_dialog_button_for_change_color(self, sender, recipient):
 		if recipient != self.GLOBAL:
 			for but, addr in self.button_dict.items():
+
 				if sender == addr and self.recipient_address != addr:
 					self.change_dialog_button_color(but, self.RED_COLOR)	
 
 		elif recipient == self.GLOBAL and self.recipient_address != self.GLOBAL:
 			for but, addr in self.button_dict.items():
+
 				if self.GLOBAL == addr:
 					self.change_dialog_button_color(but, self.RED_COLOR)
 
@@ -136,22 +142,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 	def check_not_main_message(self, data):
-		if data[0] == 'history':
+		if data[0] == self.HISTORY_START:
 			for i in reversed(range(len(self.message_list))):
 				if self.message_list[i][1] == self.GLOBAL:
 					del self.message_list[i] 
+			return True
+
+		elif data[0] == self.HISTORY:
 			try:
 				for i in range(1,len(data),5):
 					self.message_list.append([data[i+1],data[i+2],f'{data[i+3]} :: {data[i+4]}'])
 			except:
-				pass			
+				pass
+			return True
 
+		elif data[0] == self.HISTORY_END:
 			for but, addr in self.button_dict.items():
 				if addr == self.GLOBAL:
 					but.click()
 			return True
-			
-		elif data[0] == 'active_clients': 
+
+		elif data[0] == self.ACTIVE_CLIENTS: 
 			if len(data) != 2:
 				for i in range(1,len(data),2):
 					self.ui.ComboBox_Of_Clients.addItem(data[i])
@@ -170,7 +181,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			recipient = data[2]
 			client_name = data[3]
 			message = data[3]+'†'.join(data[4:])
-
 
 			self.add_dialog_button_if_no_such(sender, client_name)
 			self.if_any_connect_or_disconnect(mtype, sender, client_name)
@@ -221,20 +231,20 @@ class MainWindow(QtWidgets.QMainWindow):
 	def prepare_and_send_message(self):	
 		message = self.ui.TEdit_Input_Message.toPlainText()
 		if message:
-			self.send_message_to_server('message', self.recipient_address, message, True)
+			self.send_message_to_server(self.MESSAGE, self.recipient_address, message, True)
 	
 
 	def send_message_to_server(self, mtype, recipient, message, print_message):
 		time_now = strftime("%H:%M:%S %d-%m-%Y", gmtime())
 		mes = f' |{time_now}| {message}'
 
-		if mtype != 'history_request':			
+		if mtype != self.HISTORY_REQUEST:			
 			self.message_list.append([self.ARROW, recipient, mes])
 		self.TCP_socket.send(mtype, recipient, message)
 
 		if print_message:
 			self.ui.TEdit_Input_Message.clear()
-			self.ui.TEdit_Chat_Text.append(f'--> {mes}')
+			self.ui.TEdit_Chat_Text.append(f'{self.ARROW} {mes}')
 			self.ui.TEdit_Input_Message.setFocus()
 	
 
@@ -262,7 +272,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 	def history_request(self):
-		self.send_message_to_server('history_request', self.GLOBAL, 'history request', False)
+		self.send_message_to_server(self.HISTORY_REQUEST, self.GLOBAL, 'history request', False)
 
 
 	def change_active_dialog(self):

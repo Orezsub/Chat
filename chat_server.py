@@ -1,4 +1,3 @@
-#									D:\Python\KSIS\Laba2\Chat\chat_server.py	
 from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5 import QtCore, QtWidgets
 from server_design import Ui_MainWindow  
@@ -20,6 +19,7 @@ class MainWindow(QtWidgets.QWidget):
 		self.MESSAGE = 'message'
 		self.HISTORY_REQUST = 'history_request'
 		self.ACTIVE_CLIENTS = 'active_clients'
+		self.MAX_MESSAGE_SIZE = 1024
 
 		self.clients = {}
 		self.message_list = []
@@ -42,8 +42,21 @@ class MainWindow(QtWidgets.QWidget):
 			self.client_id_and_name[client_id] = client_name
 
 		elif mtype == self.HISTORY_REQUST:
-			history = '†'.join(self.message_list)
-			connection.sendall(bytes(f'history†{history}'.encode('utf-8')))
+			connection.send(bytes(f'history_start†'.encode('utf-8')))
+			history = ''
+			time.sleep(0.2)
+
+			for mes in self.message_list:
+				if sys.getsizeof(history+f'{mes}†') >= self.MAX_MESSAGE_SIZE:
+					connection.send(bytes(f'history†{history}'.encode('utf-8')))
+					history = ''
+					time.sleep(0.1)
+
+				history += f'{mes}†'
+
+			connection.send(bytes(f'history†{history}'.encode('utf-8')))
+			time.sleep(0.2)
+			connection.send(bytes(f'history_end†'.encode('utf-8')))
 
 
 	def new_mes(self):
@@ -99,6 +112,7 @@ class MainWindow(QtWidgets.QWidget):
 		socket_thread = threading.Thread(target=self.thread, daemon = True)
 		socket_thread.start()
 
+
 if __name__ == "__main__":
 	import socket, threading, time, sys
 	from time import gmtime, strftime
@@ -107,6 +121,7 @@ if __name__ == "__main__":
 
 	HOST = socket.gethostbyname(socket.gethostname())
 	PORT = 50007
+	LISTEN_ALL_HOST = '0.0.0.0'
 	
 	app = QtWidgets.QApplication(sys.argv)
 	application = MainWindow()
@@ -114,7 +129,7 @@ if __name__ == "__main__":
 
 	UDP_socket = UDPConnection(HOST, PORT)
 	UDP_socket.setsockopt_reuseaddr()
-	UDP_socket.bind('0.0.0.0', PORT) 	
+	UDP_socket.bind(LISTEN_ALL_HOST, PORT) 	
 	UDP_socket.send_address_to_sender()
 	UDP_socket.start_UDP_receiving()
 		

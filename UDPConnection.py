@@ -1,4 +1,3 @@
-#									D:\Python\KSIS\Laba2\Chat\UDPConnection.py	
 import socket, threading, time
 
 class UDPConnection():
@@ -10,6 +9,8 @@ class UDPConnection():
 		self.finded_ip = ''
 		self.finded_port = 0
 		self.send_addr_to_sender = False
+
+		self.MAX_MESSAGE_SIZE = 1024
 
 
 	def setsockopt_broadcast(self):
@@ -42,13 +43,14 @@ class UDPConnection():
 			except:
 				pass
 
+
 	def thread_UDP_receiving(self):		
 		while not self.shutdown:
 			try:
 				while not self.shutdown:
-					data, addr = self.socket.recvfrom(1024)
+					data, addr = self.socket.recvfrom(self.MAX_MESSAGE_SIZE)
 					message = data.decode("utf-8").split()
-					# print(message)
+
 					self.finded_ip = message[0]
 					self.finded_port = message[1]
 
@@ -57,7 +59,6 @@ class UDPConnection():
 					
 					time.sleep(0.2)
 			except OSError:
-				# self.shutdown = True
 				pass				
 
 
@@ -80,13 +81,3 @@ class UDPConnection():
 	def stop(self):
 		self.shutdown = True 
 		self.socket.close()
-		
-if __name__ == "__main__":
-
-	a = UDPConnection('192.168.1.56', 50007)
-	a.send_to('lol')
-	a.start_UDP_receiving()
-	a.start_UDP_sending()
-	while True:
-		pass
-	print(a.socket)
