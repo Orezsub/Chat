@@ -1,14 +1,17 @@
 #									D:\Python\KSIS\Laba2\Chat\TCPConnection.py	
 from PyQt5 import QtCore, QtWidgets
 import socket, threading, time
+from time import gmtime, strftime
 
 
 class TCPConnection(QtWidgets.QWidget):
 	"""docstring for TCPConnection"""
-	def __init__(self, host, port, signal):
+	def __init__(self, signal):
 		super().__init__()
-		self.host = host
-		self.port = port
+		self.GLOBAL = 'Global'
+		self.CONNECT = 'connect'
+		self.DISCONNECT = 'disconnect'
+
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.client_name = ''
 		self.message_signal = signal
@@ -16,12 +19,18 @@ class TCPConnection(QtWidgets.QWidget):
 
 
 	def send(self, mtype,receiver, message):
-		self.socket.send(bytes(f'{mtype}†{receiver}†[{self.client_name}]†{message}', encoding='UTF-8'))
+		time_now = strftime("%H:%M:%S %d-%m-%Y", gmtime())
+		message = f' |{time_now}| {message}'
+		try:
+			self.socket.send(bytes(f'{mtype}†{receiver}†[{self.client_name}]†{message}', encoding='UTF-8'))
+		except OSError:
+			pass
+		
 
 	def connect(self):
 		self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.socket.connect((self.host, self.port))
-		self.send('connect', 'Global', 'connected to chat')
+		self.send(self.CONNECT, self.GLOBAL, 'connected to chat')
 
 		self.start_TCP_receiving(None,None)
 
@@ -62,7 +71,7 @@ class TCPConnection(QtWidgets.QWidget):
 	def set_client_name(self, client_name):
 		self.client_name = client_name
 
-	def thread_TCP_receiving(self, name, connection, address):
+	def thread_TCP_receiving(self, connection, address):
 		while not self.shutdown:
 			try:
 				while not self.shutdown:
@@ -78,20 +87,19 @@ class TCPConnection(QtWidgets.QWidget):
 					self.message_signal.emit()
 
 					time.sleep(0.2)
-			except ConnectionResetError:
-				pass
+			except:
+				self.shutdown = True
 
 	def start_TCP_receiving(self, connection, address):
-		self.shutdown = False
-		
+		self.shutdown = False		
 		Thread_recv_TCP = threading.Thread(target=self.thread_TCP_receiving,
-									args=("Client", connection, address), daemon = True)			
+									args=(connection, address), daemon = True)			
 		Thread_recv_TCP.start()
 
 	def disconnect(self):
-		self.send('disconnect', 'Global', 'disconnected from chat')
-		self.socket.close()
+		self.send(self.DISCONNECT, self.GLOBAL, 'disconnected from chat')
 		self.shutdown = True 
+		self.socket.close()
 
 
 if __name__ == "__main__":
