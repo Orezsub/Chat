@@ -82,7 +82,7 @@ class TCPConnection(QtWidgets.QWidget):
 					else:
 						data = self.socket.recv(1024).decode("utf-8").split('†')
 						
-					print(data)
+					# print(data)
 					self.set_new_message(data)
 					self.message_signal.emit()
 
