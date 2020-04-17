@@ -95,6 +95,7 @@ class TCPConnection(QtWidgets.QWidget):
 						data = self.socket.recv(self.MAX_MESSAGE_SIZE).decode("utf-8").split('†')
 						
 					self.set_new_message(data)
+					if not data[0]: return
 					self.message_signal.emit()
 
 					time.sleep(0.2)
@@ -103,9 +104,9 @@ class TCPConnection(QtWidgets.QWidget):
 
 
 	def start_TCP_receiving(self, connection, address):
-		self.shutdown = False		
+		self.shutdown = False
 		Thread_recv_TCP = threading.Thread(target=self.thread_TCP_receiving,
-									args=(connection, address), daemon = True)			
+									args=(connection, address), daemon = True)
 		Thread_recv_TCP.start()
 
 
